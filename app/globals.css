@@ -2,4 +2,57 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Design system — L'agent IA ajoute ses CSS variables ici */
+@layer base {
+  :root {
+    --background: 38 43% 96%; /* #FAF6F0 - beige very light */
+    --foreground: 20 6% 23%; /* #3d3936 - dark warm grey */
+    
+    --card: 36 33% 92%; /* #F4EFE6 */
+    --card-foreground: 20 6% 23%;
+    
+    --popover: 38 43% 96%;
+    --popover-foreground: 20 6% 23%;
+    
+    --primary: 84 21% 52%; /* #A3B18A - soft green */
+    --primary-foreground: 0 0% 100%; /* white */
+    
+    --secondary: 35 48% 60%; /* #CBA365 - muted gold */
+    --secondary-foreground: 0 0% 100%;
+    
+    --accent: 12 37% 84%; /* #E6CCC6 - dusty rose */
+    --accent-foreground: 20 6% 23%;
+
+    --muted: 214 41% 78%; /* #B0C4DE - light blue */
+    --muted-foreground: 214 20% 30%;
+
+    --border: 36 20% 85%;
+    --input: 36 20% 85%;
+    --ring: 84 21% 52%;
+
+    --radius: 1rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground tracking-wide font-sans antialiased;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-serif text-foreground font-medium;
+  }
+}
+
+@layer utilities {
+  .glass {
+    @apply bg-background/70 backdrop-blur-xl border border-white/40 shadow-sm;
+  }
+  .glass-card {
+    @apply bg-card/70 backdrop-blur-md border border-white/50 shadow-sm hover:shadow-lg transition-all duration-300;
+  }
+  .gradient-text {
+    @apply text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary;
+  }
+}
