@@ -197,10 +197,30 @@ export async function getPublishedBlogPostsCount(searchTerm?: string): Promise<n
     return posts.filter((post) => matchesSearch(post, searchTerm)).length;
 }
 
+const toLegacyEncodedSlug = (slug: string): string | null => {
+    if (!slug) return null;
+
+    const decodedSlug = (() => {
+        try {
+            return decodeURIComponent(slug);
+        } catch {
+            return slug;
+        }
+    })();
+
+    const encodedSlug = encodeURIComponent(decodedSlug)
+        .toLowerCase()
+        .replace(/%/g, "");
+
+    if (!encodedSlug || encodedSlug === slug.toLowerCase()) return null;
+    return encodedSlug;
+};
+
 const getBlogPostIdBySlugCached = unstable_cache(
     async (slug: string): Promise<string | null> => {
         const siteId = await getSiteId();
         if (!siteId || !supabaseAdmin) return null;
+        const legacyEncodedSlug = toLegacyEncodedSlug(slug);
 
         const { data: directPost, error: directError } = await supabaseAdmin
             .from("blog_posts")
@@ -213,6 +233,19 @@ const getBlogPostIdBySlugCached = unstable_cache(
         if (directError) return null;
         if (directPost?.id) return directPost.id;
 
+        if (legacyEncodedSlug) {
+            const { data: encodedPost, error: encodedError } = await supabaseAdmin
+                .from("blog_posts")
+                .select("id")
+                .eq("site_id", siteId)
+                .eq("status", "published")
+                .eq("slug", legacyEncodedSlug)
+                .maybeSingle();
+
+            if (encodedError) return null;
+            if (encodedPost?.id) return encodedPost.id;
+        }
+
         const { data: posts, error } = await supabaseAdmin
             .from("blog_posts")
             .select("id, translations")
@@ -224,7 +257,9 @@ const getBlogPostIdBySlugCached = unstable_cache(
         for (const post of posts) {
             const translations = parseTranslations(post.translations);
             const hasMatchingTranslation = Object.values(translations).some(
-                (translation) => translation?.slug === slug
+                (translation) =>
+                    translation?.slug === slug ||
+                    (legacyEncodedSlug ? translation?.slug === legacyEncodedSlug : false)
             );
 
             if (hasMatchingTranslation) return post.id;
