@@ -246,23 +246,24 @@ const getBlogPostIdBySlugCached = unstable_cache(
             if (encodedPost?.id) return encodedPost.id;
         }
 
-        const { data: posts, error } = await supabaseAdmin
-            .from("blog_posts")
-            .select("id, translations")
-            .eq("site_id", siteId)
-            .eq("status", "published");
+        const fallbackCandidates = legacyEncodedSlug
+            ? [slug, legacyEncodedSlug]
+            : [slug];
 
-        if (error || !posts) return null;
-
-        for (const post of posts) {
-            const translations = parseTranslations(post.translations);
-            const hasMatchingTranslation = Object.values(translations).some(
-                (translation) =>
-                    translation?.slug === slug ||
-                    (legacyEncodedSlug ? translation?.slug === legacyEncodedSlug : false)
+        for (const candidateSlug of fallbackCandidates) {
+            const { data: fallbackPostId, error: fallbackError } = await supabaseAdmin.rpc(
+                "find_published_blog_post_id_by_any_slug",
+                { p_site_id: siteId, p_slug: candidateSlug }
             );
 
-            if (hasMatchingTranslation) return post.id;
+            if (fallbackError) {
+                console.error("RPC find_published_blog_post_id_by_any_slug failed", fallbackError);
+                continue;
+            }
+
+            if (typeof fallbackPostId === "string" && fallbackPostId.length > 0) {
+                return fallbackPostId;
+            }
         }
 
         return null;
